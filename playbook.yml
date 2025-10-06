@@ -1,32 +1,31 @@
 ---
 - name: Deploy Task Management GraphQL API
-  hosts: local
+  hosts: localhost
+  become: yes
+
   tasks:
     - name: Ensure Node.js and npm are installed
       apt:
-        name: ["nodejs", "npm"]
+        name:
+          - nodejs
+          - npm
         state: present
-      become: yes
+        update_cache: yes
 
-    - name: Copy project files to WSL home directory
-      copy:
+    - name: Copy project files to WSL home directory (excluding node_modules)
+      synchronize:
         src: /mnt/d/Projects/FOSS_exp5/
-        dest: /home/{{ lookup('env','USER') }}/taskapi/
-        mode: 0755
-      
+        dest: /home/kishore/taskapi/
+        rsync_opts:
+          - "--exclude=node_modules"
+          - "--exclude=.git"
 
-    - name: Install npm dependencies
-      command: npm install
-      args:
-        chdir: /home/{{ lookup('env','USER') }}/taskapi
+    - name: Install project dependencies
+      shell: |
+        cd /home/kishore/taskapi
+        npm install
 
-    - name: Start the Node.js server
-      command: npm start
-      args:
-        chdir: /home/{{ lookup('env','USER') }}/taskapi
-      async: 45
-      poll: 0
-
-    - name: Confirm deployment
-      debug:
-        msg: "GraphQL Task API deployed and running on http://localhost:4000/graphql"
+    - name: Start the GraphQL server
+      shell: |
+        cd /home/kishore/taskapi
+        nohup npm start &
